@@ -69,7 +69,7 @@ class sendfile_chunk_size_guarded_value_t
 			- If chunk_size_value is greater than sendfile_max_chunk_size returns sendfile_max_chunk_size.
 			- Otherwise returns chunk_size_value itself.
 		*/
-		static constexpr file_size_t
+		static file_size_t
 		clarify_chunk_size( file_size_t chunk_size_value ) noexcept
 		{
 			if( 0 == chunk_size_value )
@@ -83,7 +83,7 @@ class sendfile_chunk_size_guarded_value_t
 
 	public:
 
-		constexpr sendfile_chunk_size_guarded_value_t( file_size_t chunk_size_value ) noexcept
+		sendfile_chunk_size_guarded_value_t( file_size_t chunk_size_value ) noexcept
 			:	m_chunk_size{ clarify_chunk_size( chunk_size_value ) }
 		{}
 

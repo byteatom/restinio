@@ -11,7 +11,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 DEFINES += ASIO_STANDALONE ASIO_HAS_STD_CHRONO HTTP_PARSER_STRICT=0 FMT_HEADER_ONLY RAPIDJSON_HAS_STDSTRING RAPIDJSON_HAS_CXX11_RVALUE_REFS
 
 SOURCES += \
-    main.cpp
+    main.cpp \
+    ../../nodejs/http_parser/http_parser.c
 
-INCLUDEPATH += $$PWD/../.. $$PWD/../../asio/include $$PWD/../../fmt/include $$PWD/../../nodejs/http_parser
+INCLUDEPATH += ../.. ../../asio/include ../../fmt/include ../../nodejs/http_parser
 
