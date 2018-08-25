@@ -12,8 +12,19 @@ int main(int argc, char *argv[])
 
 	router->http_get("/", []( auto req, auto ){
 		req->create_response()
-				.append_header(restinio::http_field::content_type, "text/plain; charset=utf-8")
-				.set_body("Hello world")
+				.append_header(restinio::http_field::content_type, "text/html; charset=utf-8")
+				.set_body(R"(<!DOCTYPE html>
+						  <html>
+							<head>
+							  <title>File upload example</title>
+							</head>
+							<body>
+								<form method="post" action="/files" enctype="multipart/form-data">
+								 <input type="file" name="file" accept="image/*" multiple>
+								 <input type="submit" value="Upload">
+								</form>
+							</body>
+						  </html>)")
 				.done();
 		return restinio::request_accepted();
 	});
@@ -47,7 +58,7 @@ int main(int argc, char *argv[])
 
 	router->non_matched_request_handler([](auto req){
 		std::cout << req->header().request_target() << "->" << req->body() << std::endl;
-		return req->create_response(404, "Not found").connection_close().done();
+		return req->create_response(restinio::status_not_found()).connection_close().done();
 	});
 
 	struct my_server_traits : public restinio::default_single_thread_traits_t {
