@@ -342,21 +342,21 @@ struct sendfile_write_operation_t : public writable_base_t
 
 // Constant for suitable alignment of any entity in writable_base_t hierarchy.
 constexpr std::size_t buffer_storage_align =
-	std::max< std::size_t >( {
+	std::max< std::size_t >(std::max< std::size_t >(std::max< std::size_t >(std::max< std::size_t >(
 		alignof( empty_buf_t ),
-		alignof( const_buf_t ),
-		alignof( string_buf_t ),
-		alignof( shared_datasizeable_buf_t< std::string > ),
-		alignof( sendfile_write_operation_t ) } );
+		alignof( const_buf_t )),
+		alignof( string_buf_t )),
+		alignof( shared_datasizeable_buf_t< std::string > )),
+		alignof( sendfile_write_operation_t ));
 
-//! An of memory that is to be enough to hold any possible buffer entity.
+//! An amount of memory that is to be enough to hold any possible buffer entity.
 constexpr std::size_t needed_storage_max_size =
-	std::max< std::size_t >( {
+	std::max< std::size_t >(std::max< std::size_t >(std::max< std::size_t >(std::max< std::size_t >(
 		sizeof( empty_buf_t ),
-		sizeof( const_buf_t ),
-		sizeof( string_buf_t ),
-		sizeof( shared_datasizeable_buf_t< std::string > ),
-		sizeof( sendfile_write_operation_t ) } );
+		sizeof( const_buf_t )),
+		sizeof( string_buf_t )),
+		sizeof( shared_datasizeable_buf_t< std::string > )),
+		sizeof( sendfile_write_operation_t ));
 
 } /* namespace impl */
 
