@@ -5,7 +5,7 @@ MxxRu::arch_externals :so5 do |e|
 end
 
 MxxRu::arch_externals :asio do |e|
-  e.url 'https://github.com/chriskohlhoff/asio/archive/asio-1-12-1.tar.gz'
+  e.url 'https://github.com/chriskohlhoff/asio/archive/asio-1-12-1.zip'
 
   e.map_dir 'asio/include' => 'dev/asio'
 end
@@ -30,7 +30,7 @@ MxxRu::arch_externals :nodejs_http_parser_mxxru do |e|
 end
 
 MxxRu::arch_externals :fmt do |e|
-  e.url 'https://github.com/fmtlib/fmt/archive/5.2.1.zip'
+  e.url 'https://github.com/fmtlib/fmt/archive/5.1.0.zip'
 
   e.map_dir 'include' => 'dev/fmt'
   e.map_dir 'src' => 'dev/fmt'
@@ -59,19 +59,19 @@ MxxRu::arch_externals :rapidjson_mxxru do |e|
 end
 
 MxxRu::arch_externals :json_dto do |e|
-  e.url 'https://bitbucket.org/sobjectizerteam/json_dto-0.2/downloads/json_dto-0.2.6-full.zip'
+  e.url 'https://bitbucket.org/sobjectizerteam/json_dto-0.2/downloads/json_dto-0.2.5-full.zip'
 
   e.map_dir 'dev/json_dto' => 'dev'
 end
 
-MxxRu::arch_externals :clara do |e|
-  e.url 'https://github.com/catchorg/Clara/archive/v1.1.5.tar.gz'
+MxxRu::arch_externals :args do |e|
+  e.url 'https://github.com/Taywee/args/archive/6.2.0.zip'
 
-  e.map_file 'single_include/clara.hpp' => 'dev/clara/*'
+  e.map_file 'args.hxx' => 'dev/args/*'
 end
 
 MxxRu::arch_externals :catch do |e|
-  e.url 'https://github.com/catchorg/Catch2/archive/v2.4.2.tar.gz'
+  e.url 'https://github.com/catchorg/Catch2/archive/v2.2.3.zip'
 
-  e.map_dir 'single_include/catch2' => 'dev'
+  e.map_file 'single_include/catch.hpp' => 'dev/catch/*'
 end
