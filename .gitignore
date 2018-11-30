@@ -1,2 +1,3 @@
 *.pro.user
 .vs
+/dev/tmp/
