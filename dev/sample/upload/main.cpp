@@ -20,17 +20,17 @@ int main(int argc, char *argv[])
 		req->create_response()
 				.append_header(restinio::http_field::content_type, "text/html; charset=utf-8")
 				.set_body(R"(<!DOCTYPE html>
-						  <html>
-							<head>
-							  <title>File upload example</title>
-							</head>
-							<body>
-								<form method="post" action="/files" enctype="multipart/form-data">
-								 <input type="file" name="file" accept="image/*" multiple>
-								 <input type="submit" value="Upload">
-								</form>
-							</body>
-						  </html>)")
+<html>
+<head>
+	<title>File upload example</title>
+</head>
+<body>
+	<form method="post" action="/files" enctype="multipart/form-data">
+		<input type="file" name="file" accept="image/*" multiple>
+		<input type="submit" value="Upload">
+	</form>
+</body>
+</html>)")
 				.done();
 		return restinio::request_accepted();
 	});

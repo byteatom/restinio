@@ -64,7 +64,7 @@ struct http_parser_ctx_t
 	//! Flag: is http message parsed completely.
 	bool m_message_complete{ false };
 	
-	connection_t<Traits>* m_connection{ false };
+	connection_t<Traits>* m_connection{ nullptr };
 	request_id_t m_request_id{ 0 };
 	const typename Traits::request_handler_t::request_handler_entry_t* m_handler_entry{ nullptr };
 	
