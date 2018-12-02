@@ -7,8 +7,8 @@ int main(int argc, char *argv[])
 	auto router = std::make_unique<restinio::router::express_router_t<>>();
 
 	router->http_post("/files", []( auto req, auto paras){
-		std::cout << "size:" << req->body().size() << std::endl;
-		if (req->body().empty())
+		std::cout << "size:" << req->body().size() << ", connection_id:" << req->connection_id() << ", request_id:" << req->request_id() << std::endl;
+		if (req->body().empty())	//finished
 			req->create_response()
 				.append_header(restinio::http_field::content_type, "application/json; charset=utf-8")
 				.set_body(R"({"result":true})")

@@ -43,7 +43,10 @@ namespace impl
 	All data is used as temps, and is usable only
 	after parsing completes new requests then it is moved out.
 */
-template <typename Handler_Type>
+template < typename Traits >
+class connection_t;
+
+template <typename Traits>
 struct http_parser_ctx_t
 {
 	//! Request data.
@@ -61,10 +64,10 @@ struct http_parser_ctx_t
 	//! Flag: is http message parsed completely.
 	bool m_message_complete{ false };
 	
-	request_id_t m_request_id{ -1 };
-
-	const Handler_Type* m_handler{ nullptr };
-
+	connection_t<Traits>* m_connection{ false };
+	request_id_t m_request_id{ 0 };
+	const typename Traits::request_handler_t::request_handler_entry_t* m_handler_entry{ nullptr };
+	
 	//! Prepare context to handle new request.
 	void
 	reset()
@@ -74,8 +77,7 @@ struct http_parser_ctx_t
 		m_current_field_name.clear();
 		m_last_was_value = true;
 		m_message_complete = false;
-		m_request_id = -1;
-		m_handler = nullptr;		
+		m_handler_entry = nullptr;
 	}
 };
 
@@ -90,7 +92,7 @@ struct http_parser_ctx_t
 /*!
 	Is used to initialize const value in connection_settings_t ctor.
 */
-template <typename Handler_Type>
+template <typename Traits>
 inline http_parser_settings
 create_parser_settings() noexcept
 {
@@ -99,32 +101,32 @@ create_parser_settings() noexcept
 
 	parser_settings.on_url =
 		[]( http_parser * parser, const char * at, size_t length ) -> int {
-			return restinio_url_cb<Handler_Type>( parser, at, length );
+			return restinio_url_cb<Traits>( parser, at, length );
 		};
 
 	parser_settings.on_header_field =
 		[]( http_parser * parser, const char * at, size_t length ) -> int {
-			return restinio_header_field_cb<Handler_Type>( parser, at, length );
+			return restinio_header_field_cb<Traits>( parser, at, length );
 		};
 
 	parser_settings.on_header_value =
 			[]( http_parser * parser, const char * at, size_t length ) -> int {
-			return restinio_header_value_cb<Handler_Type>( parser, at, length );
+			return restinio_header_value_cb<Traits>( parser, at, length );
 		};
 
 	parser_settings.on_headers_complete =
 		[]( http_parser * parser ) -> int {
-			return restinio_headers_complete_cb<Handler_Type>( parser );
+			return restinio_headers_complete_cb<Traits>( parser );
 		};
 
 	parser_settings.on_body =
 		[]( http_parser * parser, const char * at, size_t length ) -> int {
-			return restinio_body_cb<Handler_Type>( parser, at, length );
+			return restinio_body_cb<Traits>( parser, at, length );
 		};
 
 	parser_settings.on_message_complete =
 		[]( http_parser * parser ) -> int {
-			return restinio_message_complete_cb<Handler_Type>( parser );
+			return restinio_message_complete_cb<Traits>( parser );
 		};
 
 	return parser_settings;
@@ -155,7 +157,7 @@ enum class connection_upgrade_stage_t : std::uint8_t
 //
 
 //! Data associated with connection read routine.
-template <typename Handler_Type>
+template <typename Traits>
 struct connection_input_t
 {
 	connection_input_t( std::size_t buffer_size )
@@ -165,7 +167,7 @@ struct connection_input_t
 	//! HTTP-parser.
 	//! \{
 	http_parser m_parser;
-	http_parser_ctx_t< Handler_Type > m_parser_ctx;
+	http_parser_ctx_t< Traits > m_parser_ctx;
 	//! \}
 
 	//! Input buffer.
@@ -236,7 +238,6 @@ class connection_t final
 		using logger_t = typename Traits::logger_t;
 		using strand_t = typename Traits::strand_t;
 		using stream_socket_t = typename Traits::stream_socket_t;
-		using Handler_Type = typename Traits::request_handler_t::route_entry_t;
 
 		connection_t(
 			//! Connection id.
@@ -255,6 +256,7 @@ class connection_t final
 			,	m_request_handler{ *( m_settings->m_request_handler ) }
 			,	m_logger{ *( m_settings->m_logger ) }
 		{
+			m_input.m_parser_ctx.m_connection = this;
 			// Notify of a new connection instance.
 			m_logger.trace( [&]{
 					return fmt::format(
@@ -306,6 +308,14 @@ class connection_t final
 								ec.message() );
 					} );
 				} );
+		}
+
+		void register_new_request() {
+			m_input.m_parser_ctx.m_request_id = m_response_coordinator.register_new_request();
+		}
+
+		void update_context_entry() {
+			m_input.m_parser_ctx.m_handler_entry = m_request_handler.find_entry(m_input.m_parser_ctx.m_header);
 		}
 
 		//! Start reading next htttp-message.
@@ -498,7 +508,7 @@ class connection_t final
 				return;
 			}
 
-			on_parser_execute();
+			notify_body_piece();
 
 			if( m_input.m_parser_ctx.m_message_complete )
 			{
@@ -508,36 +518,29 @@ class connection_t final
 				consume_message();
 		}
 
-		void on_parser_execute()
+		void notify_body_piece()
 		{
-			if (m_input.m_parser_ctx.m_request_id < 0)
-				m_input.m_parser_ctx.m_request_id = m_response_coordinator.register_new_request();
+			if (!m_input.m_parser_ctx.m_handler_entry
+				|| !m_input.m_parser_ctx.m_handler_entry->is_notify_body_piece()
+				|| m_input.m_parser_ctx.m_body.empty())
+				return;
 
-			if (!m_input.m_parser_ctx.m_handler) {
-				m_input.m_parser_ctx.m_handler = m_request_handler.find_handler(m_input.m_parser_ctx.m_header);
-			}
-
-			if (m_input.m_parser_ctx.m_handler
-				&& m_input.m_parser_ctx.m_handler->is_notify_body_piece()
-					&& !m_input.m_parser_ctx.m_body.empty()) {
-				restinio::router::route_params_t params;
-				if (request_rejected() == m_input.m_parser_ctx.m_handler->handle(
-						std::make_shared< request_t >(
-							m_input.m_parser_ctx.m_request_id,
-							m_input.m_parser_ctx.m_header,
-							m_input.m_parser_ctx.m_body,
-							shared_from_concrete< connection_base_t >()), std::move(params)))
-				{
-					// If handler refused request, say not implemented.
-					write_response_parts_impl(
+			if (request_rejected() == m_input.m_parser_ctx.m_handler_entry->handle(
+					std::make_shared< request_t >(
 						m_input.m_parser_ctx.m_request_id,
-						response_output_flags_t{
-							response_parts_attr_t::final_parts,
-							response_connection_attr_t::connection_close },
-							write_group_t{ create_not_implemented_resp() });
-				}
-				m_input.m_parser_ctx.m_body.clear();
+						m_input.m_parser_ctx.m_header,
+						m_input.m_parser_ctx.m_body,
+						shared_from_concrete< connection_base_t >()),
+					std::move(restinio::router::route_params_t())))
+			{
+				write_response_parts_impl(
+					m_input.m_parser_ctx.m_request_id,
+					response_output_flags_t{
+						response_parts_attr_t::final_parts,
+						response_connection_attr_t::connection_close },
+						write_group_t{ create_not_implemented_resp() });
 			}
+			m_input.m_parser_ctx.m_body.clear();
 		}
 
 		//! Handle a given request message.
@@ -564,8 +567,6 @@ class connection_t final
 					m_input.m_connection_upgrade_stage )
 				{
 					// Run ordinary HTTP logic.
-					if (m_input.m_parser_ctx.m_request_id < 0)
-						m_input.m_parser_ctx.m_request_id = m_response_coordinator.register_new_request();
 
 					m_logger.trace( [&]{
 						return fmt::format(
@@ -671,13 +672,11 @@ class connection_t final
 			// then connection must be able to send
 			// (hence to receive) response.
 
-			const auto request_id = m_response_coordinator.register_new_request();
-
 			m_logger.info( [&]{
 				return fmt::format(
 						"[connection:{}] handle upgrade request (#{}): {} {}",
 						connection_id(),
-						request_id,
+						m_input.m_parser_ctx.m_request_id,
 						http_method_str(
 							static_cast<http_method>( parser.method ) ),
 						parser_ctx.m_header.request_target() );
@@ -694,7 +693,7 @@ class connection_t final
 			if( request_rejected() ==
 				m_request_handler(
 					std::make_shared< request_t >(
-						request_id,
+						m_input.m_parser_ctx.m_request_id,
 						std::move( parser_ctx.m_header ),
 						std::move( parser_ctx.m_body ),
 						shared_from_concrete< connection_base_t >() ) ) )
@@ -706,7 +705,7 @@ class connection_t final
 
 					// If handler refused request, say not implemented.
 					write_response_parts_impl(
-						request_id,
+						m_input.m_parser_ctx.m_request_id,
 						response_output_flags_t{
 							response_parts_attr_t::final_parts,
 							response_connection_attr_t::connection_close },
@@ -1334,7 +1333,7 @@ class connection_t final
 		connection_settings_handle_t< Traits > m_settings;
 
 		//! Input routine.
-		connection_input_t<Handler_Type> m_input;
+		connection_input_t<Traits> m_input;
 
 		//! Write to socket operation context.
 		write_group_output_ctx_t m_write_output_ctx;

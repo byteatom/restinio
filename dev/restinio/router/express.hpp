@@ -554,9 +554,9 @@ class express_router_t
 			return request_rejected();
 		}
 
-		using route_entry_t = express_route_entry_t< Regex_Engine >;
+		using request_handler_entry_t = express_route_entry_t< Regex_Engine >;
 
-		const route_entry_t* find_handler(const http_request_header_t &header) {
+		const request_handler_entry_t* find_entry(const http_request_header_t &header) {
 			route_params_t params;
 			for (const auto & entry : m_handlers)
 			{
@@ -571,7 +571,7 @@ class express_router_t
 
 		//! Add handlers.
 		//! \{
-		route_entry_t&
+		request_handler_entry_t&
 		add_handler(
 			http_method_t method,
 			string_view_t route_path,
@@ -584,7 +584,7 @@ class express_router_t
 				std::move( handler ) );
 		}
 
-		route_entry_t&
+		request_handler_entry_t&
 		add_handler(
 			http_method_t method,
 			string_view_t route_path,
@@ -667,7 +667,7 @@ class express_router_t
 				std::move( handler ) );
 		}
 
-		route_entry_t&
+		request_handler_entry_t&
 		http_post(
 			string_view_t route_path,
 			express_request_handler_t handler )
@@ -678,7 +678,7 @@ class express_router_t
 				std::move( handler ) );
 		}
 
-		route_entry_t&
+		request_handler_entry_t&
 		http_post(
 			string_view_t route_path,
 			const path2regex::options_t & options,
@@ -725,7 +725,7 @@ class express_router_t
 
 	private:
 		//! A list of existing routes.
-		std::vector< route_entry_t > m_handlers;
+		std::vector< request_handler_entry_t > m_handlers;
 
 		//! Handler that is called for requests that don't match any route.
 		non_matched_request_handler_t m_non_matched_request_handler;
