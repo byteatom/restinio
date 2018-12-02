@@ -2,10 +2,6 @@
 
 #include <restinio/all.hpp>
 
-#include "nlohmann.hpp"
-
-using Json = nlohmann::json;
-
 int main(int argc, char *argv[])
 {
 	auto router = std::make_unique<restinio::router::express_router_t<>>();
