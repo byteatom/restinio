@@ -44,7 +44,7 @@ request_rejected() noexcept
 ///@}
 
 //! Request id in scope of single connection.
-using request_id_t = unsigned int;
+using request_id_t = int;
 
 //! Attribute for parts.
 enum class response_parts_attr_t : std::uint8_t

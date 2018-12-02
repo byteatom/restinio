@@ -189,7 +189,7 @@ class http_server_t
 			auto conn_settings =
 				std::make_shared< connection_settings_t >(
 					std::forward< actual_settings_type >(settings),
-					impl::create_parser_settings(),
+					impl::create_parser_settings<Traits::request_handler_t::route_entry_t>(),
 					m_timer_manager );
 
 			m_acceptor =

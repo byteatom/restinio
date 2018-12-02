@@ -10,6 +10,16 @@ int main(int argc, char *argv[])
 {
 	auto router = std::make_unique<restinio::router::express_router_t<>>();
 
+	router->http_post("/files", []( auto req, auto paras){
+		std::cout << "size:" << req->body().size() << std::endl;
+		if (req->body().empty())
+			req->create_response()
+				.append_header(restinio::http_field::content_type, "application/json; charset=utf-8")
+				.set_body(R"({"result":true})")
+				.done();
+		return restinio::request_accepted();
+	}).notify_body_piece();
+
 	router->http_get("/", []( auto req, auto ){
 		req->create_response()
 				.append_header(restinio::http_field::content_type, "text/html; charset=utf-8")
@@ -27,38 +37,6 @@ int main(int argc, char *argv[])
 						  </html>)")
 				.done();
 		return restinio::request_accepted();
-	});
-
-	router->http_post("/files/absent", []( auto req, auto ){
-		std::cout << req->header().request_target() << "->" << req->body() << std::endl;
-		req->create_response()
-				.append_header(restinio::http_field::content_type, "application/json; charset=utf-8")
-				.set_body(req->body())
-				.done();
-		return restinio::request_accepted();
-	});
-
-	router->http_post("/files", []( auto req, auto ){
-		std::cout << req->header().request_target() << "->size:" << req->body().size() << ":" << req->body() << std::endl;
-		req->create_response()
-				.append_header(restinio::http_field::content_type, "application/json; charset=utf-8")
-				.set_body(R"({"result":true})")
-				.done();
-		return restinio::request_accepted();
-	});
-
-	router->http_put("/clips", []( auto req, auto ){
-		std::cout << req->header().request_target() << "->" << req->body() << std::endl;
-		req->create_response()
-				.append_header(restinio::http_field::content_type, "application/json; charset=utf-8")
-				.set_body(R"({"result":true})")
-				.done();
-		return restinio::request_accepted();
-	});
-
-	router->non_matched_request_handler([](auto req){
-		std::cout << req->header().request_target() << "->" << req->body() << std::endl;
-		return req->create_response(restinio::status_not_found()).connection_close().done();
 	});
 
 	struct my_server_traits : public restinio::default_single_thread_traits_t {

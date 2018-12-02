@@ -488,9 +488,20 @@ class express_route_entry_t
 			return request_rejected();
 		}
 
+		bool is_notify_body_piece() const
+		{
+			return m_notify_body_piece;
+		}
+
+		void notify_body_piece()
+		{
+			m_notify_body_piece = true;
+		}
+
 	private:
 		impl::route_matcher_t< Regex_Engine > m_matcher;
 		express_request_handler_t m_handler;
+		bool m_notify_body_piece{false};
 };
 
 //
@@ -543,22 +554,37 @@ class express_router_t
 			return request_rejected();
 		}
 
+		using route_entry_t = express_route_entry_t< Regex_Engine >;
+
+		const route_entry_t* find_handler(const http_request_header_t &header) {
+			route_params_t params;
+			for (const auto & entry : m_handlers)
+			{
+				if (entry.match(header, params))
+				{
+					return &entry;
+				}
+			}
+
+			return nullptr;
+		}
+
 		//! Add handlers.
 		//! \{
-		void
+		route_entry_t&
 		add_handler(
 			http_method_t method,
 			string_view_t route_path,
 			express_request_handler_t handler )
 		{
-			add_handler(
+			return add_handler(
 				method,
 				route_path,
 				path2regex::options_t{},
 				std::move( handler ) );
 		}
 
-		void
+		route_entry_t&
 		add_handler(
 			http_method_t method,
 			string_view_t route_path,
@@ -566,6 +592,7 @@ class express_router_t
 			express_request_handler_t handler )
 		{
 			m_handlers.emplace_back( method, route_path, options, std::move( handler ) );
+			return m_handlers.back();
 		}
 
 		void
@@ -640,24 +667,24 @@ class express_router_t
 				std::move( handler ) );
 		}
 
-		void
+		route_entry_t&
 		http_post(
 			string_view_t route_path,
 			express_request_handler_t handler )
 		{
-			add_handler(
+			return add_handler(
 				http_method_t::http_post,
 				route_path,
 				std::move( handler ) );
 		}
 
-		void
+		route_entry_t&
 		http_post(
 			string_view_t route_path,
 			const path2regex::options_t & options,
 			express_request_handler_t handler )
 		{
-			add_handler(
+			return add_handler(
 				http_method_t::http_post,
 				route_path,
 				options,
@@ -697,8 +724,6 @@ class express_router_t
 		}
 
 	private:
-		using route_entry_t = express_route_entry_t< Regex_Engine >;
-
 		//! A list of existing routes.
 		std::vector< route_entry_t > m_handlers;
 
