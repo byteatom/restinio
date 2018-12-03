@@ -87,6 +87,7 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(TMP)\$(ProjectName)-$(Configuration)\</OutDir>
     <IntDir>$(OutDir)</IntDir>
+    <IncludePath>../..;../../asio/include;../../fmt/include;../../nodejs/http_parser;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
